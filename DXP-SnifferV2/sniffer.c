@@ -57,5 +57,25 @@ int main(int ac, char **av)
         exit(EXIT_FAILURE);
     }
 
+    unsigned char buffer[2024];
+    
+    while (1)
+    {
+        int bytes_received = recvfrom(sock, buffer,
+                                     sizeof(buffer), 0, NULL, NULL);
+
+        if (bytes_received == -1)
+        {
+            perror("ERROR ! (recvfrom)");
+            continue;
+        }
+
+        printf("Packet reçu : %d octets\n", bytes_received);
+
+    }
+
+    
+    
+
 
 }
