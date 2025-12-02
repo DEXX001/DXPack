@@ -5,12 +5,18 @@
 #include <net/if.h>        // Pour obtenir l'index de l'interface (nécessaire pour envoyer)
 #include <sys/ioctl.h>     // Pour communiquer avec le pilote réseau
 #include <linux/if_packet.h> // Pour struct sockaddr_ll (l'adresse de destination bas niveau)
+#include <netinet/udp.h>
+#include <netinet/tcp.h>
 #include <netinet/ip.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+
+#define GREEN "\033[32m"
+#define RESET "\033[0m"
+
 
 int main(int ac, char **av)
 {
@@ -60,7 +66,7 @@ int main(int ac, char **av)
         exit(EXIT_FAILURE);
     }
 
-    unsigned char buffer[2024];    
+    unsigned char buffer[65535];    
     
     while (1)
     {
@@ -73,7 +79,7 @@ int main(int ac, char **av)
             continue;
         }
 
-        struct ether_header *eth = (struct ether_header *)buffer;
+        struct ether_header *eth = (struct ether_header *)buffer; 
         uint16_t eth_type = ntohs(eth->ether_type);
 
         if (eth_type != ETH_P_IP)
@@ -82,7 +88,18 @@ int main(int ac, char **av)
         }
 
         struct iphdr *ip_header = (struct iphdr *)(buffer + sizeof(struct ether_header));
+        int ip_header_length = ip_header->ihl * 4;
+        unsigned char *transport = buffer + sizeof(struct ether_header) + ip_header_length;
+        struct in_addr src_ip;
+        struct in_addr dst_ip;
+        
         uint8_t proto = ip_header->protocol;
+
+        src_ip.s_addr = ip_header->saddr;
+        dst_ip.s_addr = ip_header->daddr;
+
+        uint16_t src_port = 0;
+        uint16_t dst_port = 0;
 
         if (strcmp(filter_proto, "tcp") == 0 && proto != 6)
             continue;
@@ -91,8 +108,37 @@ int main(int ac, char **av)
         else if (strcmp(filter_proto, "icmp") == 0 && proto != 1)
             continue;
 
-        printf("Packet reçu : %d octets\n", bytes_received);
-        printf("Proto = %d\n", proto);
+        if (proto == 6)
+        {
+            struct tcphdr *tcp = (struct tcphdr *)transport;
+            src_port = ntohs(tcp->source);
+            dst_port = ntohs(tcp->dest);
+        }
+
+        else if (proto == 17)
+        {
+            struct udphdr *udp = (struct udphdr *)transport;
+            src_port = ntohs(udp->source);
+            dst_port = ntohs(udp->dest);
+        }
+
+        if (proto == 6 || proto == 17)
+        {
+                printf(GREEN "[IP] %s:%d -> %s:%d | protocole=%d | len=%d\n" RESET,
+                    inet_ntoa(src_ip), src_port, 
+                    inet_ntoa(dst_ip), dst_port,
+                    proto,
+                    bytes_received);
+        }
+
+        else
+        {
+                printf(GREEN "[IP] %s -> %s | protocole=%d | len=%d\n" RESET,
+                    inet_ntoa(src_ip), 
+                    inet_ntoa(dst_ip), 
+                    proto,
+                    bytes_received);
+        }
 
     }
 
