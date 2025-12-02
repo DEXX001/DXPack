@@ -5,6 +5,7 @@
 #include <net/if.h>        // Pour obtenir l'index de l'interface (nécessaire pour envoyer)
 #include <sys/ioctl.h>     // Pour communiquer avec le pilote réseau
 #include <linux/if_packet.h> // Pour struct sockaddr_ll (l'adresse de destination bas niveau)
+#include <netinet/ip.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,11 +14,13 @@
 
 int main(int ac, char **av)
 {
-    if (ac != 2)
+    if (ac != 3)
     {
-        printf("FROMAT : <interface>\n");
+        printf("FROMAT : <interface> <proto>\n");
         exit(EXIT_FAILURE);
     }
+
+    char *filter_proto = av[2];
 
     int sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 
@@ -57,7 +60,7 @@ int main(int ac, char **av)
         exit(EXIT_FAILURE);
     }
 
-    unsigned char buffer[2024];
+    unsigned char buffer[2024];    
     
     while (1)
     {
@@ -70,12 +73,27 @@ int main(int ac, char **av)
             continue;
         }
 
+        struct ether_header *eth = (struct ether_header *)buffer;
+        uint16_t eth_type = ntohs(eth->ether_type);
+
+        if (eth_type != ETH_P_IP)
+        {
+            continue;
+        }
+
+        struct iphdr *ip_header = (struct iphdr *)(buffer + sizeof(struct ether_header));
+        uint8_t proto = ip_header->protocol;
+
+        if (strcmp(filter_proto, "tcp") == 0 && proto != 6)
+            continue;
+        else if (strcmp(filter_proto, "udp") == 0 && proto != 17)
+            continue;
+        else if (strcmp(filter_proto, "icmp") == 0 && proto != 1)
+            continue;
+
         printf("Packet reçu : %d octets\n", bytes_received);
+        printf("Proto = %d\n", proto);
 
     }
-
-    
-    
-
 
 }
