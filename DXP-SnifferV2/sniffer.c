@@ -122,11 +122,29 @@ int main(int ac, char **av)
             dst_port = ntohs(udp->dest);
         }
 
-        if (proto == 6 || proto == 17)
+        if (proto == 6)
         {
-                printf(GREEN "[IP] %s:%d -> %s:%d | protocole=%d | len=%d\n" RESET,
+                printf(GREEN "[IP] %s:%d -> %s:%d | protocole=TCP(%d)  | len=%d\n" RESET,
                     inet_ntoa(src_ip), src_port, 
                     inet_ntoa(dst_ip), dst_port,
+                    proto,
+                    bytes_received);
+        }
+
+        else if (proto == 17)
+        {
+                 printf(GREEN "[IP] %s:%d -> %s:%d | protocole=UDP(%d)  | len=%d\n" RESET,
+                    inet_ntoa(src_ip), src_port, 
+                    inet_ntoa(dst_ip), dst_port,
+                    proto,
+                    bytes_received);           
+        }
+
+        else if (proto == 1)
+        {
+            printf(GREEN "[IP] %s -> %s | protocole=ICMP(%d) | len=%d\n" RESET,
+                    inet_ntoa(src_ip),
+                    inet_ntoa(dst_ip),
                     proto,
                     bytes_received);
         }
@@ -138,6 +156,62 @@ int main(int ac, char **av)
                     inet_ntoa(dst_ip), 
                     proto,
                     bytes_received);
+        }
+
+        int ethernet_size = sizeof(struct ether_header);
+        int ip_size       = ip_header_length;
+        int transport_size = 0;
+
+        if (proto == 6)
+        {
+            struct tcphdr *tcp2 = (struct tcphdr *)transport;
+            transport_size = tcp2->doff * 4;
+        }
+
+        else if (proto == 17)
+        {
+            transport_size = sizeof(struct udphdr);
+        }
+
+        else
+        {
+            transport_size = 0;
+        }
+
+        int header_total = ethernet_size + ip_size + transport_size;
+
+        if (header_total >= bytes_received)
+        {
+            continue; // pas de payload
+        }
+
+        unsigned char *payload = buffer + header_total;
+        int payload_len = bytes_received - header_total;
+
+        if (payload_len > 0)
+        {
+            int max_dump = 32;
+
+            printf("[HEX]  ");
+
+            for (int i = 0; i < payload_len && i < max_dump; i++)
+            {
+                printf("%02x ", payload[i]);
+            }
+
+            printf("\n");
+
+            printf("[ASCII]  ");
+            for (int i = 0; i < payload_len && i < max_dump; i++)
+            {
+                unsigned char c = payload[i];
+                if (c >= 32 && c <= 126)
+                    printf("%c", c);
+                else
+                    printf(".");
+            }
+            printf("\n\n");
+            
         }
 
     }
