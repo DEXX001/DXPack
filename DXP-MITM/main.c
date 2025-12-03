@@ -45,13 +45,25 @@
         // ioctl SIOCGIFHWADDR : récupère l’adresse MAC de l’interface (remplit iface_req.ifr_hwaddr)
         if (ioctl(ctx.raw_sock, SIOCGIFHWADDR, &iface_req) == -1)
         {
-            perror("ERROR ! (ioct1 - SIOCGIFHWADDR)");
+            perror("ERROR ! (ioctl - SIOCGIFHWADDR)");
             close(ctx.raw_sock);
             exit(EXIT_FAILURE);
         }
 
         unsigned char *mac = (unsigned char *)iface_req.ifr_hwaddr.sa_data;
         memcpy(ctx.attacker_mac, mac, 6);
+
+        memset(&iface_req, 0, sizeof(iface_req));
+        strncpy(iface_req.ifr_name, ctx.iface, IF_NAMESIZE - 1);
+
+        if (ioctl(ctx.raw_sock, SIOCGIFINDEX, &iface_req) == -1)
+        {
+            perror("ERROR ! (ioctl - SIOCGIFINDEX)");
+            close(ctx.raw_sock);
+            exit(EXIT_FAILURE);
+        }
+
+        ctx.if_index = iface_req.ifr_ifindex;
 
         // Convertit les IP victime / gateway (strings) en struct in_addr dans le contexte
         inet_pton(AF_INET, av[2], &ctx.victim_ip);

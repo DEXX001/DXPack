@@ -16,6 +16,7 @@ typedef struct mitm_ctx
     struct in_addr victim_ip;
     struct in_addr gateway_ip;
     int raw_sock;
+    int if_index;
 }mitm_ctx; 
 
 
