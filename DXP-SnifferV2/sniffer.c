@@ -43,7 +43,7 @@ int main(int ac, char **av)
         perror("ERROR ! (socket)");
         exit(EXIT_FAILURE);
     }
-
+    
     int agent_hardware = ioctl(sock, SIOCGIFINDEX, &iface_req);
 
     if (agent_hardware == -1)
@@ -158,8 +158,8 @@ int main(int ac, char **av)
                     bytes_received);
         }
 
-        int ethernet_size = sizeof(struct ether_header);
-        int ip_size       = ip_header_length;
+        int ethernet_size  = sizeof(struct ether_header);
+        int ip_size        = ip_header_length;
         int transport_size = 0;
 
         if (proto == 6)
