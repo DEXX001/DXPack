@@ -1,19 +1,31 @@
+# =========================
+#  DXP-MITM - Makefile
+# =========================
+
 CC      = gcc
 CFLAGS  = -Wall -Wextra -Werror -g
 LDFLAGS = -lpthread
 
-SRC = main.c poisoning.c sniffer.c routing.c utils.c
-OBJ = $(SRC:.c=.o)
+NAME    = dxp_mitm
 
-NAME = dxp_mitm
+SRCS    = main.c \
+          poisoning.c \
+          sniffer.c \
+          routing.c \
+          utils.c
+
+OBJS    = $(SRCS:.c=.o)
 
 all: $(NAME)
 
-$(NAME): $(OBJ)
-	$(CC) $(OBJ) -o $(NAME) $(LDFLAGS)
+$(NAME): $(OBJS)
+	$(CC) $(OBJS) -o $(NAME) $(LDFLAGS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJ)
+	rm -f $(OBJS)
 
 fclean: clean
 	rm -f $(NAME)

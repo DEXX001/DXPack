@@ -26,7 +26,7 @@ void *sniffer_thread(void *arg)
             continue;
         }
 
-        if (bytes_received < sizeof(struct ether_header))
+        if ((size_t)bytes_received < sizeof(struct ether_header))
             continue;
 
         struct ether_header *eth = (struct ether_header *)buffer;

@@ -4,6 +4,21 @@
 #include <unistd.h>   // write, close
 #include "routing.h"
 
+#include <stdio.h>
+#include "utils.h"
+
+void print_banner(void)
+{
+    printf(
+        "=========================================\n"
+        "        D X P   M I T M   v0.1\n"
+        "        (DXPack - MITM)\n"
+        "=========================================\n"
+        "\n"
+    );
+}
+
+
 void enable_ip_forward(void)
 {
     int fd = open("/proc/sys/net/ipv4/ip_forward", O_WRONLY);
